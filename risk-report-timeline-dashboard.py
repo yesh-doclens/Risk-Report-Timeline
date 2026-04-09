@@ -424,7 +424,7 @@ def get_plot(final_results):
         title="Claim Risk Progression Timeline",
 
         xaxis=dict(
-            title="Date Document Recieved to Insurance Company (Grouped by Date)",
+            title="Date Document Received (Grouped by Date)",
             tickvals=x_vals,
             ticktext=[d.strftime("%b %d, %Y") for d in sorted_dates],
             tickfont=dict(size=14)
@@ -495,27 +495,27 @@ fig, grouped, date_keys = get_plot(data)
 
 st.plotly_chart(fig, use_container_width=True)
 
-selected_index = st.selectbox(
-    "Select Date: ",
-    range(len(date_keys)),
-    format_func=lambda i: date_keys[i].strftime("%b %d, %Y")
-)
+# selected_index = st.selectbox(
+#     "Select Date: ",
+#     range(len(date_keys)),
+#     format_func=lambda i: date_keys[i].strftime("%b %d, %Y")
+# )
 # -----------------------------
 # SHOW DETAILS
 # -----------------------------
-selected_date = date_keys[selected_index]
-entries = grouped[selected_date]
+# selected_date = date_keys[selected_index]
+# entries = grouped[selected_date]
 
-st.subheader(f"Documents on {selected_date.strftime('%b %d, %Y')}")
+# st.subheader(f"Documents on {selected_date.strftime('%b %d, %Y')}")
 
-docs = [doc for doc in data if doc["display_date"] == selected_date]
+# docs = [doc for doc in data if doc["display_date"] == selected_date]
 
-for doc in docs:
-    doc_id = doc["id"]
+# for doc in docs:
+#     doc_id = doc["id"]
 
-    url = f"https://claimlens.empro.doclens.ai/claim-file/{claim_file_mapping[claim_file]}/?dept=3&folder=5&defaultDoc={doc_id}"
+#     url = f"https://claimlens.empro.doclens.ai/claim-file/{claim_file_mapping[claim_file]}/?dept=3&folder=5&defaultDoc={doc_id}"
 
-    st.markdown(f"### 🔗 [Document {doc_id}]({url})")
+#     st.markdown(f"### 🔗 [Document {doc_id}]({url})")
 
     # st.write(f"Risk: **{risk_label[doc['risk']]}**")
     # st.write(f"Cumulative Signals: {e['cumulative']}")
