@@ -54,7 +54,7 @@ def get_date(doc):
 # -----------------------------
 # MAIN FUNCTION
 # -----------------------------
-def get_plot(final_results):
+def get_plot(final_results, filter_start_date):
     # -----------------------------
     # INPUT DATA
     # -----------------------------
@@ -174,7 +174,7 @@ def get_plot(final_results):
         # risk = doc["risk_info"]["document_risk_score"]
         # start, end = date_buckets.get(risk, (datetime(2026,1,1), datetime(2026,3,31)))
         doc["display_date"] = get_date(doc)
-
+    data = [doc for doc in data if doc["display_date"] <= filter_start_date]
     docs = sorted(data, key=lambda x: x["display_date"])
     # docs[-1]["display_date"] = docs[-2]["display_date"]
     # -----------------------------
@@ -478,6 +478,8 @@ claim_file_mapping = {
     "170949": 15
 }
 
+filter_start_date = datetime(2026, 3, 1)
+
 with open(f"risk-report-timeline-results-{claim_file}.pkl", "rb") as f:
     loaded_list = pickle.load(f)
 
@@ -489,33 +491,33 @@ if not data:
     st.warning("No data loaded")
     st.stop()
 
-fig, grouped, date_keys = get_plot(data)
+fig, grouped, date_keys = get_plot(data, filter_start_date)
 
 
 
 st.plotly_chart(fig, use_container_width=True)
 
-# selected_index = st.selectbox(
-#     "Select Date: ",
-#     range(len(date_keys)),
-#     format_func=lambda i: date_keys[i].strftime("%b %d, %Y")
-# )
+selected_index = st.selectbox(
+    "Select Date: ",
+    range(len(date_keys)),
+    format_func=lambda i: date_keys[i].strftime("%b %d, %Y")
+)
 # -----------------------------
 # SHOW DETAILS
 # -----------------------------
-# selected_date = date_keys[selected_index]
-# entries = grouped[selected_date]
+selected_date = date_keys[selected_index]
+entries = grouped[selected_date]
 
-# st.subheader(f"Documents on {selected_date.strftime('%b %d, %Y')}")
+st.subheader(f"Documents on {selected_date.strftime('%b %d, %Y')}")
 
-# docs = [doc for doc in data if doc["display_date"] == selected_date]
+docs = [doc for doc in data if doc["display_date"] == selected_date]
 
-# for doc in docs:
-#     doc_id = doc["id"]
+for doc in docs:
+    doc_id = doc["id"]
 
-#     url = f"https://claimlens.empro.doclens.ai/claim-file/{claim_file_mapping[claim_file]}/?dept=3&folder=5&defaultDoc={doc_id}"
+    url = f"https://claimlens.empro.doclens.ai/claim-file/{claim_file_mapping[claim_file]}/?dept=3&folder=5&defaultDoc={doc_id}"
 
-#     st.markdown(f"### 🔗 [Document {doc_id}]({url})")
+    st.markdown(f"### 🔗 [Document {doc_id}]({url})")
 
     # st.write(f"Risk: **{risk_label[doc['risk']]}**")
     # st.write(f"Cumulative Signals: {e['cumulative']}")
