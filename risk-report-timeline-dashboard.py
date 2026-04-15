@@ -51,14 +51,45 @@ def get_date(doc):
 
     return datetime.fromisoformat(doc["created_at"]).replace(tzinfo=None)
 
+def build_entity_map(attorney_results, court_results):
+    """
+    Returns:
+    {
+        doc_id: [(category, keyword, risk), ...]
+    }
+    """
+
+    entity_map = defaultdict(list)
+
+    # -----------------------------
+    # ATTORNEY
+    # -----------------------------
+    for doc_id, entities in attorney_results.items():
+        for e in entities:
+            name = e.get("attorney_name", "Unknown Attorney")
+            rating = e.get("rating", "L")
+            entity_map[int(doc_id)].append(("Attorney", name, rating))
+
+    # -----------------------------
+    # COURT
+    # -----------------------------
+    for doc_id, entities in court_results.items():
+        for e in entities:
+            name = e.get("court_name", "Unknown Court")
+            rating = e.get("rating", "L")
+            entity_map[int(doc_id)].append(("Court", name, rating))
+
+    return entity_map
+
 # -----------------------------
 # MAIN FUNCTION
 # -----------------------------
-def get_plot(final_results, filter_start_date):
+def get_plot(final_results, filter_start_date, attorney_results, court_results):
     # -----------------------------
     # INPUT DATA
     # -----------------------------
     data = final_results
+    entity_map = build_entity_map(attorney_results, court_results)
 
     # -----------------------------
     # CONFIG
@@ -190,18 +221,28 @@ def get_plot(final_results, filter_start_date):
         doc_risk = risk_map.get(doc["risk_info"]["document_risk_score"], 0)
         ann = doc.get("annotations", {}).get("claim-characteristics", {}).get("annotations", [])
 
-        current_keywords = {(a.get("Characteristic"), a.get("Question")) for a in ann}
+        doc_id = doc.get("id")
+
+        # Existing keyword signals
+        current_keywords = {
+            (a.get("Characteristic"), a.get("Question"), a.get("RiskCategory"))
+            for a in ann
+        }
+
+        # Add entity signals
+        entity_signals = entity_map.get(doc_id, [])
+
+        for cat, name, rating in entity_signals:
+            current_keywords.add((cat, name, rating))
         new_keywords = current_keywords - seen_keywords
 
         if doc_risk > current_max_risk:
             current_max_risk = doc_risk
 
         relevant = set()
-        for cat, kw in new_keywords:
-            for a in ann:
-                if a.get("Question") == kw and a.get("Characteristic") == cat:
-                    if risk_map.get(a.get("RiskCategory"), 0) == current_max_risk:
-                        relevant.add((cat, kw))
+        for cat, name, rating in new_keywords:
+            if risk_map.get(rating, 0) == current_max_risk:
+                relevant.add((cat, name))
 
         cumulative_by_risk[current_max_risk] += len(relevant)
         max_by_risk[current_max_risk] = max(
@@ -241,18 +282,28 @@ def get_plot(final_results, filter_start_date):
         doc_risk = risk_map.get(doc["risk_info"]["document_risk_score"], 0)
         ann = doc.get("annotations", {}).get("claim-characteristics", {}).get("annotations", [])
 
-        current_keywords = {(a.get("Characteristic"), a.get("Question")) for a in ann}
+        doc_id = doc.get("id")
+        # Existing keyword signals
+        current_keywords = {
+            (a.get("Characteristic"), a.get("Question"), a.get("RiskCategory"))
+            for a in ann
+        }
+        
+        # Add entity signals
+        entity_signals = entity_map.get(doc_id, [])
+
+        for cat, name, rating in entity_signals:
+            current_keywords.add((cat, name, rating))
+            
         new_keywords = current_keywords - seen_keywords
 
         if doc_risk > current_max_risk:
             current_max_risk = doc_risk
 
         relevant = set()
-        for cat, kw in new_keywords:
-            for a in ann:
-                if a.get("Question") == kw and a.get("Characteristic") == cat:
-                    if risk_map.get(a.get("RiskCategory"), 0) == current_max_risk:
-                        relevant.add((cat, kw))
+        for cat, name, rating in new_keywords:
+            if risk_map.get(rating, 0) == current_max_risk:
+                relevant.add((cat, name))
 
         cumulative_by_risk[current_max_risk] += len(relevant)
         
@@ -470,21 +521,30 @@ import pickle
 
 claim_file = st.selectbox(
     "Select a claim file",
-    ["138226", "170949", "170948"]
+    ["138226", "170949", "170948", "144415", "157314"]
 )
 
 claim_file_mapping = {
     "138226": 16,
     "170949": 15,
-    "170948": 24
+    "170948": 24,
+    "144415": 13,
+    "157314": 20,
 }
 
 filter_start_date = datetime(2026, 3, 1)
 
-with open(f"risk-report-timeline-results-{claim_file}.pkl", "rb") as f:
+with open(f"./{claim_file}/risk-report-timeline-results-{claim_file}.pkl", "rb") as f:
     loaded_list = pickle.load(f)
 
-print(loaded_list)
+with open(f"./{claim_file}/risk-report-timeline-results-attorney-{claim_file}.pkl", "rb") as f:
+    attorney_list = pickle.load(f)
+
+with open(f"./{claim_file}/risk-report-timeline-results-court-{claim_file}.pkl", "rb") as f:
+    court_list = pickle.load(f)
+
+# print(loaded_list)
+print(attorney_list)
 
 data = loaded_list
 
@@ -492,7 +552,7 @@ if not data:
     st.warning("No data loaded")
     st.stop()
 
-fig, grouped, date_keys = get_plot(data, filter_start_date)
+fig, grouped, date_keys = get_plot(data, filter_start_date, attorney_list, court_list)
 
 
 
