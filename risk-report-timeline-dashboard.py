@@ -91,6 +91,11 @@ def get_plot(final_results, filter_start_date, attorney_results, court_results):
     data = final_results
     entity_map = build_entity_map(attorney_results, court_results)
 
+    def wrap_keywords(kws, n=7):
+        kws = sorted(list(set(kws)))
+        chunks = [kws[i:i + n] for i in range(0, len(kws), n)]
+        return ",<br>                ".join([", ".join(chunk) for chunk in chunks])
+
     # -----------------------------
     # CONFIG
     # -----------------------------
@@ -348,7 +353,7 @@ def get_plot(final_results, filter_start_date, attorney_results, court_results):
                 temp.setdefault(cat, []).append(kw)
 
             for cat, kws in temp.items():
-                hover += f"<b>{cat}</b>: <span style='color:{color}'>{', '.join(set(kws))}</span><br>"
+                hover += f"<b>{cat}</b>: <span style='color:{color}'>{wrap_keywords(kws)}</span><br>"
         else:
             hover += f"<b>No new {risk_label[current_max_risk]} signals</b><br>"
 
@@ -407,7 +412,7 @@ def get_plot(final_results, filter_start_date, attorney_results, court_results):
                 temp_all.setdefault(cat, []).append(kw)
 
             for cat, kws in temp_all.items():
-                combined_hover += f"<b>{cat}</b>: <span style='color:{color}'>{', '.join(set(kws))}</span><br>"
+                combined_hover += f"<b>{cat}</b>: <span style='color:{color}'>{wrap_keywords(kws)}</span><br>"
 
             combined_hover += "<br>"
 
@@ -521,7 +526,7 @@ import pickle
 
 claim_file = st.selectbox(
     "Select a claim file",
-    ["138226", "170949", "170948", "144415", "157314"]
+    ["138226", "170949", "170948", "144415", "157314", "120437"]
 )
 
 claim_file_mapping = {
@@ -530,6 +535,7 @@ claim_file_mapping = {
     "170948": 24,
     "144415": 13,
     "157314": 20,
+    "120437": 18
 }
 
 filter_start_date = datetime(2026, 3, 1)
